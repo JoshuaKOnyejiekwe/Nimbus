@@ -1,0 +1,32 @@
+/* ═══════════════════════════════════════════════════════════
+   browse.css — Nimbus
+   Styles for BrowsePage (pages.js → BrowsePage).
+   Covers: filter pills row, search input, sort dropdown.
+   The anime card grid itself is styled in card.css.
+   Depends on: base.css
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── BROWSE PAGE ────────────────────────────────────────── */
+.browse-filters      { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+.filter-pill {
+  padding: 6px 16px; border-radius: 99px; font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border); background: none; color: var(--text-secondary);
+  cursor: pointer; font-family: inherit; transition: var(--transition);
+}
+.filter-pill:hover   { border-color: var(--border-accent); color: var(--text-primary); }
+.filter-pill.active  { background: var(--accent); color: white; border-color: var(--accent); }
+
+.browse-search-bar   { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.browse-search-input {
+  flex: 1; max-width: 400px; background: var(--bg-surface);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  color: var(--text-primary); font-family: inherit; font-size: 14px;
+  padding: 10px 16px; outline: none; transition: var(--transition);
+}
+.browse-search-input:focus { border-color: var(--border-accent); }
+
+.sort-select {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  color: var(--text-primary); font-family: inherit; font-size: 13px;
+  padding: 9px 12px; border-radius: var(--radius-md); outline: none; cursor: pointer;
+}

@@ -1,0 +1,104 @@
+/* ═══════════════════════════════════════════════════════════
+   detail.css — Nimbus
+   Styles for DetailPage (pages.js → DetailPage).
+   Covers: blurred hero banner, poster, title block, meta row,
+   synopsis, detail body grid, info sidebar stats, MAL link
+   button, watch-status selector, episode list with dub/sub tabs.
+   Depends on: base.css
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── DETAIL HERO ────────────────────────────────────────── */
+.detail-hero { position: relative; height: 400px; overflow: hidden; }
+.detail-hero-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center 20%;
+  filter: blur(2px) brightness(0.4);
+}
+.detail-hero-content {
+  position: relative; z-index: 2; height: 100%;
+  display: flex; align-items: flex-end;
+  padding: 0 40px 36px; gap: 32px;
+}
+.detail-poster {
+  width: 160px; height: 230px; border-radius: var(--radius-md);
+  overflow: hidden; flex-shrink: 0;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+  border: 2px solid rgba(255,255,255,0.1);
+}
+.detail-poster img { width: 100%; height: 100%; object-fit: cover; }
+.detail-info     { flex: 1; }
+.detail-studios  { font-size: 12px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.detail-title    { font-family: 'Bebas Neue', sans-serif; font-size: 52px; line-height: 1; margin-bottom: 12px; }
+.detail-meta-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.detail-rating   { display: flex; align-items: center; gap: 5px; color: #fbbf24; font-size: 15px; font-weight: 700; }
+.detail-tags     { display: flex; gap: 6px; flex-wrap: wrap; }
+.detail-synopsis { font-size: 14px; line-height: 1.7; color: var(--text-secondary); max-width: 680px; }
+
+/* ── DETAIL BODY ────────────────────────────────────────── */
+.detail-body { padding: 32px 40px; max-width: 1100px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 280px; gap: 40px; }
+
+/* ── STATS SIDEBAR ──────────────────────────────────────── */
+.info-stat  { margin-bottom: 16px; }
+.info-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
+.info-value { font-size: 14px; font-weight: 500; }
+.info-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+
+/* MAL link button */
+.mal-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(43,112,255,0.15); border: 1px solid rgba(43,112,255,0.35);
+  color: #6ea8fe; font-size: 13px; font-weight: 600;
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  cursor: pointer; transition: var(--transition); text-decoration: none;
+  margin-top: 8px; width: 100%;
+}
+.mal-btn:hover { background: rgba(43,112,255,0.25); }
+
+/* ── WATCH STATUS SELECTOR ──────────────────────────────── */
+.status-selector { margin-top: 16px; }
+.status-label    { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.status-options  { display: flex; flex-direction: column; gap: 6px; }
+.status-btn {
+  padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
+  border: 1px solid var(--border); background: none; color: var(--text-secondary);
+  cursor: pointer; text-align: left; transition: var(--transition); font-family: inherit;
+}
+.status-btn:hover         { border-color: var(--border-accent); color: var(--text-primary); background: rgba(232,48,74,0.08); }
+.status-btn.active-status { background: rgba(232,48,74,0.15); color: var(--accent); border-color: var(--border-accent); }
+
+/* ── EPISODE LIST ───────────────────────────────────────── */
+.dub-sub-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.tab-btn {
+  padding: 7px 18px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border); background: none;
+  color: var(--text-muted); cursor: pointer; font-family: inherit;
+  transition: var(--transition);
+}
+.tab-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+.episode-list { display: flex; flex-direction: column; gap: 8px; }
+.episode-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 16px; border-radius: var(--radius-md);
+  background: var(--bg-surface); border: 1px solid var(--border);
+  cursor: pointer; transition: var(--transition);
+}
+.episode-item:hover { border-color: var(--border-accent); background: var(--bg-elevated); }
+.episode-num {
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  background: var(--bg-elevated); display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0;
+}
+.episode-thumb { width: 80px; height: 48px; border-radius: var(--radius-sm); object-fit: cover; background: var(--bg-elevated); flex-shrink: 0; }
+.ep-info       { flex: 1; min-width: 0; }
+.ep-title      { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.ep-duration   { font-size: 11px; color: var(--text-muted); }
+.ep-play-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(232,48,74,0.15); border: 1px solid rgba(232,48,74,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--accent); transition: var(--transition); flex-shrink: 0;
+}
+.ep-play-btn:hover { background: var(--accent); color: white; }

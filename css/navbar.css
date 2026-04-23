@@ -1,0 +1,64 @@
+/* ═══════════════════════════════════════════════════════════
+   navbar.css — Nimbus
+   Styles for the Navbar component (components.js → Navbar).
+   Covers: fixed top bar, logo, nav links, search bar, avatar.
+   Depends on: base.css
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── NAVBAR ─────────────────────────────────────────────── */
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  height: var(--navbar-h);
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px; gap: 20px;
+}
+.navbar-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px; letter-spacing: 2px;
+  color: var(--accent); cursor: pointer;
+  flex-shrink: 0; text-shadow: 0 0 20px var(--accent-glow);
+}
+.navbar-logo span { color: var(--text-primary); }
+.nav-links { display: flex; gap: 4px; flex: 1; }
+.nav-link {
+  padding: 7px 14px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 500;
+  color: var(--text-secondary); cursor: pointer;
+  transition: var(--transition); border: none; background: none;
+}
+.nav-link:hover  { color: var(--text-primary); background: #5d5e5d; }
+.nav-link.active { color: var(--accent); background: #5d5e5d; }
+
+/* ── SEARCH BAR ─────────────────────────────────────────── */
+.search-bar {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 7px 12px; width: 240px;
+  transition: var(--transition);
+}
+.search-bar:focus-within {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.search-bar input {
+  background: none; border: none; outline: none;
+  color: var(--text-primary); font-family: inherit;
+  font-size: 14px; width: 100%;
+}
+.search-bar input::placeholder { color: var(--text-muted); }
+
+/* ── AVATAR BUTTON ──────────────────────────────────────── */
+.avatar-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  border: 2px solid transparent; transition: var(--transition);
+  color: white; flex-shrink: 0;
+}
+.avatar-btn:hover { border-color: var(--accent); box-shadow: var(--shadow-accent); }

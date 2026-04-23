@@ -1,0 +1,19 @@
+/* ═══════════════════════════════════════════════════════════
+   ticker.css — Nimbus
+   Styles for the UpdatesTicker component (components.js → UpdatesTicker).
+   Covers: the scrolling news strip that sits between the navbar
+   and the hero banner on the Home page.
+   Depends on: base.css (uses --transition, --accent, --bg-surface,
+               --border, --text-secondary, and the @keyframes ticker
+               animation defined in base.css)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── UPDATES TICKER ─────────────────────────────────────── */
+.updates-strip  { background: var(--bg-surface); border-top: 1px solid var(--border); border-bottom: 1px solid rgb(212 175 55); padding: 10px 0; overflow: hidden; position: relative; }
+.updates-inner  { display: flex; gap: 32px; animation: ticker 40s linear infinite; }
+.updates-inner:hover { animation-play-state: paused; }
+.update-item    { display: flex; align-items: center; gap: 8px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+.update-dot     { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.update-label   { color: var(--text-secondary); }
+.update-new     { color: var(--accent); font-weight: 700; text-transform: uppercase; font-size: 10px; }
+

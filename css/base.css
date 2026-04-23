@@ -1,0 +1,139 @@
+/* ═══════════════════════════════════════════════════════════
+   base.css — Nimbus
+   Global foundation: design tokens, reset, utilities, animations.
+   Every other CSS file depends on the variables defined here.
+   Load this FIRST in index.html.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── DESIGN TOKENS ─────────────────────────────────────────
+   Change these vars to retheme the entire site instantly.    */
+:root {
+  --bg-base:       #5d5e5d;   /* deepest background */   /*Changes the background where the anime cards are at*/
+  --bg-surface:    #5d5e5d;   /* card / panel bg */      /*The color graident ontop of the anime graident, on the right side / the anime scrolling banner , and anime banner desc*/
+  --bg-elevated:   #000000;   /* hover / raised state */  /*The serach bar color*/
+  --bg-overlay:    rgba(247, 3, 255, 0.92);   /* modal backdrop */
+
+  --accent:        #D4AF37;                 /*Changes front part of the title, Home button color, watch now color, new ep color*/
+  --accent-glow:   rgb(255, 255, 255);   /*the soft halo/bloom effect behind glowing elements like the logo, focused search bar, and button shadows*/
+  --accent2:       #c9961a;                 /*a secondary highlight color used for variety alongside the main accent*/
+  --accent3:         #8b6914;               /*a third accent, used for things like the avatar gradient*/
+
+  --text-primary:  #ffffff;         /*the main readable text, headings, titles*/
+  --text-secondary:#ffffff;         /* supporting text, subtitles, metadata. Yours is pure bright blue which will look very intense everywhere*/
+  --text-muted:    #ffffff;         /*the dimmest text, hints, timestamps, placeholders. Yours is pure black, which will be invisible on dark backgrounds*/
+
+  --border:        #5d5e5d;       /* the default subtle line around cards, panels, inputs. Very faint white, which is fine*/
+  --border-accent: #fffffff7;          /*the highlighted border on focused or active elements like a focused search box or active card*/
+
+  --radius-sm: 6px;                  /*small rounding, used on buttons, badges, episode numbers*/
+  --radius-md: 10px;                 /*medium rounding, used on inputs, dropdowns, cards*/  
+  --radius-lg: 16px;                 /*large rounding, used on anime cards and panels*/
+  --radius-xl: 24px;                 /*the most rounded, available for pill-shaped elements*/
+
+
+  --shadow-card:   0 8px 32px rgba(0, 0, 0, 0.5);                     /*the drop shadow under cards when you hover them. Standard dark shadow, fine*/
+  --shadow-accent: 0 0 24px var(--accent-glow);                         /*the glowing shadow on primary buttons and the logo , It pulls from --accent-glow, so since yours is white it'll glow white.*/
+  --transition:    0.2s cubic-bezier(0.4,0,0.2,1);                      /*controls how fast and smooth all hover/state animations feel across the entire site. The cubic-bezier curve makes them feel snappy rather than linear*/
+
+  --navbar-h:  64px;           /*the height of the fixed top bar. Everything below it uses this to offset so content isn't hidden behind it*/
+  --sidebar-w: 220px;          /*the width of the sidebar, available for layout calculations*/
+}
+
+/* ── RESET ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Thin crimson scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 99px; }
+
+/* ── UTILITIES ──────────────────────────────────────────── */
+.flex            { display: flex; }
+.flex-col        { display: flex; flex-direction: column; }
+.items-center    { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1           { gap: 8px; }
+.gap-2           { gap: 16px; }
+.gap-3           { gap: 24px; }
+.truncate        { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── PAGE LAYOUT ────────────────────────────────────────── */
+/* Offset content below the fixed navbar */
+.page      { padding-top: var(--navbar-h); min-height: 100vh; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+/* ── BUTTONS ────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px; border-radius: var(--radius-md);
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; border: none; transition: var(--transition);
+  text-decoration: none; white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: #f04060; box-shadow: var(--shadow-accent); transform: translateY(-1px); }
+.btn-secondary { background: rgba(255,255,255,0.1); color: var(--text-primary); border: 1px solid var(--border); }
+.btn-secondary:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.2); }
+.btn-ghost { background: none; color: var(--text-secondary); padding: 8px 12px; border-radius: var(--radius-sm); }
+.btn-ghost:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+.btn-icon { padding: 8px; background: none; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.btn-icon:hover  { color: var(--accent); border-color: var(--border-accent); }
+.btn-icon.active { color: var(--accent); background: rgba(232,48,74,0.1); border-color: var(--border-accent); }
+
+/* ── SECTION HEADERS ────────────────────────────────────── */
+.section        { padding: 40px 0 8px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.section-title  {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; letter-spacing: 1.5px; color: var(--text-primary);
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title::before {
+  content: ''; width: 4px; height: 20px; border-radius: 2px;
+  background: var(--accent); display: block;
+}
+.view-all { font-size: 13px; color: var(--accent); cursor: pointer; font-weight: 500; transition: var(--transition); background: none; border: none; }
+.view-all:hover { text-decoration: underline; }
+
+/* ── HORIZONTAL SCROLL ROW ──────────────────────────────── */
+.h-scroll-wrap { position: relative; }
+.h-scroll {
+  display: flex; gap: 16px; overflow-x: auto;
+  padding-bottom: 8px; scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.h-scroll::-webkit-scrollbar { display: none; }
+
+/* ── GENRE PILL ─────────────────────────────────────────── */
+.genre-pill { font-size: 10px; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,0.06); color: var(--text-secondary); border: 1px solid var(--border); }
+
+/* ── TOAST NOTIFICATIONS ────────────────────────────────── */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 12px 18px;
+  font-size: 13px; font-weight: 500; color: var(--text-primary);
+  box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 10px;
+  animation: slideIn 0.3s ease; min-width: 240px;
+}
+.toast-success { border-color: rgba(16,185,129,0.4); }
+.toast-icon    { font-size: 16px; }
+
+/* ── ANIMATIONS ─────────────────────────────────────────── */
+@keyframes fadeIn  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes ticker  { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+@keyframes spin    { to { transform: rotate(360deg); } }
+
+.fade-in { animation: fadeIn 0.4s ease forwards; }
+.pulse   { animation: pulse 2s ease infinite; }
