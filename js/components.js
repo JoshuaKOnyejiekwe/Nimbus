@@ -30,8 +30,11 @@ function Navbar({ page, setPage, searchQuery, setSearchQuery }) {
 }
 
 /* ── UPDATES TICKER ──────────────────────────────────────────── */
-function UpdatesTicker() {
-  var doubled = [...UPDATES, ...UPDATES];
+/* updates prop = array of {label, tag} from the live API.
+   Falls back to a loading placeholder while data loads.       */
+function UpdatesTicker({ updates }) {
+  const items = (updates && updates.length) ? updates : [{ label: "Fetching latest anime news…", tag: "•" }];
+  const doubled = [...items, ...items]; // duplicate for seamless CSS loop
   return (
     <div className="updates-strip">
       <div className="updates-inner">

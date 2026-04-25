@@ -19,6 +19,7 @@ function App() {
   /* ── Persistent user data ── */
   const [favorites, setFavorites] = React.useState(() => loadStorage("favorites", []));
   const [bookmarks, setBookmarks] = React.useState(() => loadStorage("bookmarks", []));
+  const [updates,   setUpdates  ] = React.useState([]);
   const [userLists, setUserLists] = React.useState(() =>
     loadStorage("userLists", { watching:[], completed:[], planToWatch:[], dropped:[] })
   );
@@ -31,6 +32,9 @@ function App() {
       .then(function(data) {
         setDb(data.ANIME_DB);
         setSoon(data.COMING_SOON);
+        setUpdates(data.UPDATES || []);
+        // Expose INITIAL_COMMENTS globally so CommentSection can read it
+        window.__NimbusComments = data.INITIAL_COMMENTS || {};
         setLoading(false);
       })
       .catch(function(err) {
@@ -92,7 +96,7 @@ function App() {
   const renderPage = () => {
     switch (page) {
       case "home":
-        return <HomePage     db={db} soon={soon} setPage={setPage} setCurrentAnime={setCurrentAnime} setCurrentEp={setCurrentEp} {...listProps}/>;
+        return <HomePage     db={db} soon={soon} updates={updates} setPage={setPage} setCurrentAnime={setCurrentAnime} setCurrentEp={setCurrentEp} {...listProps}/>;
       case "browse":
         return <BrowsePage   db={db} searchQuery={searchQuery} setPage={setPage} setCurrentAnime={setCurrentAnime} setCurrentEp={setCurrentEp} {...listProps}/>;
       case "schedule":

@@ -5,7 +5,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 /* ── HOME PAGE ─────────────────────────────────────────────── */
-function HomePage({ db, soon, setPage, setCurrentAnime, setCurrentEp, favorites, bookmarks, onFavorite, onBookmark }) {
+function HomePage({ db, soon, updates, setPage, setCurrentAnime, setCurrentEp, favorites, bookmarks, onFavorite, onBookmark }) {
   function handleDetail(anime) { setCurrentAnime(anime); setPage("detail"); }
   function handleWatch(anime, ep) { setCurrentAnime(anime); setCurrentEp(ep); setPage("watch"); }
 
@@ -15,7 +15,7 @@ function HomePage({ db, soon, setPage, setCurrentAnime, setCurrentEp, favorites,
 
   return (
     <div className="page">
-      <UpdatesTicker />
+      <UpdatesTicker updates={updates} />
       <HeroBanner db={db} onWatch={handleWatch} onDetail={handleDetail} />
 
       <div className="container">
@@ -239,7 +239,7 @@ function DetailPage({ anime, setPage, setCurrentEp, userLists, setUserLists, fav
   const trackAvailable = dubSub === "sub" ? anime.hasSub : anime.hasDub;
 
   function handleWatchEp(ep) {
-    setCurrentEp({ ...ep, streamUrl: ep.streamUrl });
+    setCurrentEp(ep);  /* MegaPlay builds URL from anime.malId/alId */
     setPage("watch");
   }
 
@@ -379,144 +379,7 @@ function DetailPage({ anime, setPage, setCurrentEp, userLists, setUserLists, fav
   );
 }
 
-/* ── STREAMING PLAYER with multi-source fallback ─────────────── */
-function StreamingPlayer({ anime, episode }) {
-  const SOURCES = React.useMemo(() => {
-    if (!anime || !episode) return [];
-    const slug = anime.gogoSlug;
-    const ep   = episode.id;
-    const title= encodeURIComponent(anime.title + " episode " + ep + " english sub");
-    const list = [];
-    if (slug) {
-      list.push({ label: "Source 1 (Primary)",   url: `https://gogoanime3.co/embed/${slug}-episode-${ep}` });
-      list.push({ label: "Source 2 (Backup)",    url: `https://gogoanime3.to/embed/${slug}-episode-${ep}` });
-    }
-    if (episode.streamUrl && !list.find(s => s.url === episode.streamUrl)) {
-      list.push({ label: "Source 3 (AniList)",   url: episode.streamUrl });
-    }
-    if (anime.trailer && ep === 1) {
-      list.push({ label: "Official Trailer",     url: anime.trailer });
-    }
-    list.push({ label: "Search YouTube", url: `https://www.youtube.com/results?search_query=${title}`, external: true });
-    list.push({ label: "Search Zoro.to", url: `https://zoro.to/search?keyword=${encodeURIComponent(anime.title)}`, external: true });
-    return list;
-  }, [anime, episode]);
-
-  const [sourceIdx, setSourceIdx] = React.useState(0);
-  const [failed,    setFailed   ] = React.useState(false);
-  const [manualSrc, setManualSrc] = React.useState(null);
-  const iframeRef = React.useRef(null);
-
-  // Reset when episode changes
-  React.useEffect(() => { setSourceIdx(0); setFailed(false); setManualSrc(null); }, [episode?.id]);
-
-  const current = manualSrc ? { url: manualSrc, label: "Custom URL" } : SOURCES[sourceIdx];
-
-  function tryNext() {
-    const next = sourceIdx + 1;
-    if (next < SOURCES.length) { setSourceIdx(next); setFailed(false); }
-    else setFailed(true);
-  }
-
-  function handleError() {
-    // iframe onError is unreliable; this fires on network-level errors
-    tryNext();
-  }
-
-  const isExternal = current?.external;
-
-  return (
-    <div style={{position:"relative",width:"100%",aspectRatio:"16/9",background:"#000"}}>
-      {!failed && !isExternal && current ? (
-        <iframe
-          ref={iframeRef}
-          key={current.url}               /* force remount on source change */
-          src={current.url}
-          title={`${anime?.title} EP${episode?.id}`}
-          style={{width:"100%",height:"100%",border:"none"}}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-          allowFullScreen
-          onError={handleError}
-        />
-      ) : (
-        /* Fallback UI — shows when all embeds fail or source is external */
-        <div style={{
-          width:"100%",height:"100%",display:"flex",flexDirection:"column",
-          alignItems:"center",justifyContent:"center",background:"#0a0a0a",
-          padding:24,gap:16,textAlign:"center"
-        }}>
-          <div style={{fontSize:40}}>🎬</div>
-          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:"var(--accent)"}}>
-            {failed ? "Embed unavailable" : "External source"}
-          </div>
-          <p style={{fontSize:13,color:"var(--text-muted)",maxWidth:380}}>
-            Direct embedding is blocked for this title. Open in a new tab or try another source below.
-          </p>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
-            {SOURCES.map((s,i) => (
-              <button key={i}
-                style={{
-                  padding:"8px 14px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",
-                  background: i===sourceIdx&&!failed ? "var(--accent)" : "var(--bg-elevated)",
-                  color: i===sourceIdx&&!failed ? "#fff" : "var(--text-secondary)",
-                  border:"1px solid var(--border)",fontFamily:"inherit"
-                }}
-                onClick={() => {
-                  if (s.external) { window.open(s.url,"_blank"); return; }
-                  setSourceIdx(i); setFailed(false); setManualSrc(null);
-                }}>
-                {s.external ? "↗ " : ""}{s.label}
-              </button>
-            ))}
-          </div>
-          {/* Manual URL input */}
-          <div style={{marginTop:8,width:"100%",maxWidth:420}}>
-            <p style={{fontSize:11,color:"var(--text-muted)",marginBottom:6}}>Paste a direct embed URL:</p>
-            <div style={{display:"flex",gap:6}}>
-              <input id="custom-url-input" placeholder="https://…"
-                style={{flex:1,background:"var(--bg-elevated)",border:"1px solid var(--border)",borderRadius:6,
-                        color:"var(--text-primary)",padding:"8px 10px",fontSize:12,outline:"none"}}
-              />
-              <button className="btn btn-primary btn-sm"
-                onClick={() => {
-                  const v = document.getElementById("custom-url-input").value.trim();
-                  if (v) { setManualSrc(v); setFailed(false); }
-                }}>Load</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Source switcher overlay — bottom-left, only when embed is active */}
-      {!failed && !isExternal && SOURCES.length > 1 && (
-        <div style={{
-          position:"absolute",bottom:8,left:8,display:"flex",gap:4,
-          background:"rgba(0,0,0,0.7)",borderRadius:6,padding:"4px 6px",zIndex:10
-        }}>
-          {SOURCES.filter(s => !s.external).map((s,i) => (
-            <button key={i}
-              title={s.label}
-              style={{
-                width:24,height:24,borderRadius:4,fontSize:10,fontWeight:700,cursor:"pointer",
-                background: i===sourceIdx ? "var(--accent)" : "rgba(255,255,255,0.1)",
-                color:"#fff",border:"none",fontFamily:"inherit"
-              }}
-              onClick={() => { setSourceIdx(i); setFailed(false); setManualSrc(null); }}>
-              {i+1}
-            </button>
-          ))}
-          <button
-            title="Source unavailable? Try next"
-            style={{padding:"0 6px",height:24,borderRadius:4,fontSize:10,background:"rgba(255,255,255,0.1)",
-                    color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit"}}
-            onClick={tryNext}>
-            Skip ›
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
+/* StreamingPlayer is now in js/player.js */
 
 /* ── WATCH PAGE ──────────────────────────────────────────────── */
 function WatchPage({ anime, episode, setCurrentEp, setPage }) {
@@ -529,19 +392,15 @@ function WatchPage({ anime, episode, setCurrentEp, setPage }) {
   const prevEp  = epIndex > 0 ? episodes[epIndex-1] : null;
   const nextEp  = epIndex < episodes.length-1 ? episodes[epIndex+1] : null;
 
-  function goEp(ep) {
-    // Ensure episode has a streamUrl
-    window.__NimbusData.then(({ getStreamUrl }) => {
-      setCurrentEp({ ...ep, streamUrl: getStreamUrl(anime, ep.id) });
-    });
-  }
+  /* MegaPlay constructs URLs from malId/alId — no streamUrl needed */
+  function goEp(ep) { setCurrentEp(ep); }
 
   return (
     <div className="page">
       <div className="watch-layout">
         <div className="player-column">
           <div className="player-wrapper">
-            <StreamingPlayer anime={anime} episode={episode} />
+            <StreamingPlayer anime={anime} episode={episode} dubSub={dubSub} />
           </div>
 
           <div className="player-info">
@@ -555,8 +414,8 @@ function WatchPage({ anime, episode, setCurrentEp, setPage }) {
                 Next <IconChevronR/>
               </button>
               <div className="dub-sub-tabs" style={{marginBottom:0}}>
-                {anime.hasSub && <button className={"tab-btn btn-sm"+(dubSub==="sub"?" active":"")} onClick={() => setDubSub("sub")}>SUB</button>}
-                {anime.hasDub && <button className={"tab-btn btn-sm"+(dubSub==="dub"?" active":"")} onClick={() => setDubSub("dub")}>DUB</button>}
+                <button className={"tab-btn btn-sm"+(dubSub==="sub"?" active":"")} onClick={() => setDubSub("sub")}>SUB</button>
+                <button className={"tab-btn btn-sm"+(dubSub==="dub"?" active":"")} onClick={() => setDubSub("dub")}>DUB</button>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setPage("detail")}>Anime Info</button>
             </div>
@@ -668,7 +527,8 @@ function MyListPage({ db, userLists, setUserLists, favorites, bookmarks, onFavor
 /* ── COMMENT SECTION ─────────────────────────────────────────── */
 function CommentSection({ animeId, epId }) {
   const key = animeId + "-" + epId;
-  const [comments, setComments] = React.useState((typeof INITIAL_COMMENTS !== "undefined" && INITIAL_COMMENTS[key]) || []);
+  const seedMap = window.__NimbusComments || {};
+  const [comments, setComments] = React.useState(seedMap[key] || []);
   const [text, setText] = React.useState("");
 
   function postComment() {
