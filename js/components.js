@@ -8,7 +8,7 @@ function Navbar({ page, setPage, searchQuery, setSearchQuery }) {
   return (
     <nav className="navbar">
       <div className="navbar-logo" onClick={() => setPage("home")}>
-        ANI<span>VERSE</span>
+        Nim<span>bus</span>
       </div>
       <div className="nav-links">
         <button className={`nav-link${page==="home"    ?" active":""}`} onClick={() => setPage("home")}>    <IconHome/>     Home     </button>
