@@ -1,28 +1,22 @@
 /* ═══════════════════════════════════════════════════════════
-   app.js — Nimbus
-   Root App component: holds all global state and routes
-   between pages. Also the React 18 entry point.
-
-   State managed here:
-     page          — current route (string, no react-router)
-     searchQuery   — navbar search value
-     currentAnime  — the anime being viewed / watched
-     currentEp     — the episode being watched
-     favorites     — array of anime IDs (persisted)
-     bookmarks     — array of anime IDs (persisted)
-     userLists     — { watching, completed, planToWatch, dropped }
-
-   Load order: React → data.js → helpers.js → icons.js
-               → components.js → pages.js → app.js
+   app.js — Nimbus (DYNAMIC)
+   Root App: awaits NimbusData, then renders the full app.
    ═══════════════════════════════════════════════════════════ */
+
 function App() {
+  /* ── Data bootstrap state ── */
+  const [db,      setDb     ] = React.useState(null);   // ANIME_DB array
+  const [soon,    setSoon   ] = React.useState([]);     // COMING_SOON
+  const [loading, setLoading] = React.useState(true);
+  const [dbError, setDbError] = React.useState(null);
+
   /* ── Routing ── */
   const [page,         setPage        ] = React.useState("home");
   const [searchQuery,  setSearchQuery ] = React.useState("");
   const [currentAnime, setCurrentAnime] = React.useState(null);
   const [currentEp,    setCurrentEp   ] = React.useState(null);
 
-  /* ── Persistent user data (seeded from localStorage on mount) ── */
+  /* ── Persistent user data ── */
   const [favorites, setFavorites] = React.useState(() => loadStorage("favorites", []));
   const [bookmarks, setBookmarks] = React.useState(() => loadStorage("bookmarks", []));
   const [userLists, setUserLists] = React.useState(() =>
@@ -31,46 +25,86 @@ function App() {
 
   const { toasts, showToast } = useToast();
 
-  /* ── Toggle favorite — persists immediately ── */
+  /* ── Boot: resolve NimbusData promise ── */
+  React.useEffect(function() {
+    window.__NimbusData
+      .then(function(data) {
+        setDb(data.ANIME_DB);
+        setSoon(data.COMING_SOON);
+        setLoading(false);
+      })
+      .catch(function(err) {
+        setDbError(err.message || "Failed to load anime data");
+        setLoading(false);
+      });
+  }, []);
+
+  /* ── Favorite toggle ── */
   const onFavorite = (id) => {
     setFavorites(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x!==id) : [...prev, id];
+      const next = prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id];
       saveStorage("favorites", next);
       showToast(prev.includes(id) ? "Removed from Favorites" : "Added to Favorites ❤");
       return next;
     });
   };
 
-  /* ── Toggle bookmark — persists immediately ── */
+  /* ── Bookmark toggle ── */
   const onBookmark = (id) => {
     setBookmarks(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x!==id) : [...prev, id];
+      const next = prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id];
       saveStorage("bookmarks", next);
       showToast(prev.includes(id) ? "Removed Bookmark" : "Bookmarked 🔖");
       return next;
     });
   };
 
-  // Bundle props shared by most page components
   const listProps = { favorites, bookmarks, onFavorite, onBookmark, showToast };
 
-  /* ── Page router — switch on `page` string ── */
+  /* ── Loading screen ── */
+  if (loading) {
+    return (
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"var(--bg-base)",gap:20}}>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:36,color:"var(--accent)",letterSpacing:3,textShadow:"0 0 30px var(--accent-glow)"}}>
+          ANI<span style={{color:"#fff"}}>VERSE</span>
+        </div>
+        <div style={{width:48,height:48,border:"3px solid var(--bg-elevated)",borderTopColor:"var(--accent)",borderRadius:"50%",animation:"spin 0.9s linear infinite"}}/>
+        <div style={{fontSize:13,color:"var(--text-muted)"}}>Fetching latest anime…</div>
+      </div>
+    );
+  }
+
+  /* ── Error screen (shows static fallback notice) ── */
+  if (dbError || !db) {
+    return (
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"var(--bg-base)",gap:16,padding:24}}>
+        <div style={{fontSize:48}}>⚠️</div>
+        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:24,color:"var(--accent)"}}>Could not load anime data</div>
+        <p style={{fontSize:14,color:"var(--text-muted)",textAlign:"center",maxWidth:400}}>
+          {dbError || "Unknown error"}. This may be a CORS or network issue. Try opening the page from a local server.
+        </p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
+  }
+
+  /* ── Page router ── */
   const renderPage = () => {
     switch (page) {
       case "home":
-        return <HomePage     setPage={setPage} setCurrentAnime={setCurrentAnime} setCurrentEp={setCurrentEp} {...listProps}/>;
+        return <HomePage     db={db} soon={soon} setPage={setPage} setCurrentAnime={setCurrentAnime} setCurrentEp={setCurrentEp} {...listProps}/>;
       case "browse":
-        return <BrowsePage   searchQuery={searchQuery} setPage={setPage} setCurrentAnime={setCurrentAnime} setCurrentEp={setCurrentEp} {...listProps}/>;
+        return <BrowsePage   db={db} searchQuery={searchQuery} setPage={setPage} setCurrentAnime={setCurrentAnime} setCurrentEp={setCurrentEp} {...listProps}/>;
       case "schedule":
-        return <SchedulePage />;
+        return <SchedulePage soon={soon} />;
       case "detail":
         return <DetailPage   anime={currentAnime} setPage={setPage} setCurrentEp={setCurrentEp} userLists={userLists} setUserLists={setUserLists} {...listProps}/>;
       case "watch":
         return <WatchPage    anime={currentAnime} episode={currentEp} setCurrentEp={setCurrentEp} setPage={setPage}/>;
       case "mylist":
-        return <MyListPage   userLists={userLists} setUserLists={setUserLists} setCurrentAnime={setCurrentAnime} setPage={setPage} {...listProps}/>;
+        return <MyListPage   db={db} userLists={userLists} setUserLists={setUserLists} setCurrentAnime={setCurrentAnime} setPage={setPage} {...listProps}/>;
       default:
-        return <HomePage     setPage={setPage} setCurrentAnime={setCurrentAnime} setCurrentEp={setCurrentEp} {...listProps}/>;
+        return <HomePage     db={db} soon={soon} setPage={setPage} setCurrentAnime={setCurrentAnime} setCurrentEp={setCurrentEp} {...listProps}/>;
     }
   };
 
@@ -83,6 +117,5 @@ function App() {
   );
 }
 
-/* ── Entry point — React 18 concurrent mode ── */
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App />);

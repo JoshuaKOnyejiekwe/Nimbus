@@ -1,56 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- META -->
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nimbus — Stream Anime</title>
 
-  <!-- FONTS: Bebas Neue (cinematic titles) · Outfit (body) · Noto Sans JP (Japanese) -->
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet" />
+  <!-- FONTS -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet"/>
 
   <!--
-    CSS LOAD ORDER — base.css must be first (all others depend on its variables):
-      base.css       → design tokens, reset, utilities, buttons, animations
-      navbar.css     → fixed top bar, search input, avatar button
-      ticker.css     → scrolling news strip
-      hero.css       → rotating hero banner + dot navigation
-      card.css       → anime cards, coming soon cards, status badges
-      browse.css     → browse page filters, search bar, sort dropdown
-      detail.css     → detail page hero, episode list, info sidebar
-      watch.css      → video player, episode sidebar, comment section
-      mylist.css     → list tabs, list items, empty state
-      footer.css     → site footer grid
+    CSS LOAD ORDER — base.css first (design tokens):
+      base.css → navbar.css → ticker.css → hero.css → card.css
+      browse.css → detail.css → watch.css → mylist.css → footer.css
   -->
-  <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/navbar.css" />
-  <link rel="stylesheet" href="css/ticker.css" />
-  <link rel="stylesheet" href="css/hero.css" />
-  <link rel="stylesheet" href="css/card.css" />
-  <link rel="stylesheet" href="css/browse.css" />
-  <link rel="stylesheet" href="css/detail.css" />
-  <link rel="stylesheet" href="css/watch.css" />
-  <link rel="stylesheet" href="css/mylist.css" />
-  <link rel="stylesheet" href="css/footer.css" />
+  <link rel="stylesheet" href="css/base.css"/>
+  <link rel="stylesheet" href="css/navbar.css"/>
+  <link rel="stylesheet" href="css/ticker.css"/>
+  <link rel="stylesheet" href="css/hero.css"/>
+  <link rel="stylesheet" href="css/card.css"/>
+  <link rel="stylesheet" href="css/browse.css"/>
+  <link rel="stylesheet" href="css/detail.css"/>
+  <link rel="stylesheet" href="css/watch.css"/>
+  <link rel="stylesheet" href="css/mylist.css"/>
+  <link rel="stylesheet" href="css/footer.css"/>
 
-  <!-- REACT 18 + BABEL (in-browser JSX transpiler) -->
+  <!-- REACT 18 + BABEL -->
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* Extra: make iframe inside StreamingPlayer fill its container correctly */
+    .video-container { position:relative; width:100%; aspect-ratio:16/9; background:#000; overflow:hidden; }
+    .video-container iframe,
+    .video-container > div { position:absolute; inset:0; width:100%; height:100%; }
+  </style>
 </head>
 <body>
 
-  <!-- React mounts here -->
+  <!--
+    ⚠ CORS NOTE
+    The Jikan API (api.jikan.moe) allows browser requests directly.
+    AniList (graphql.anilist.co) also allows browser CORS.
+    Gogoanime embeds require the page to be served from a real HTTP
+    server (not file://). Use:
+        npx serve .
+    or
+        python3 -m http.server 8080
+    then open http://localhost:8080
+  -->
+
   <div id="root"></div>
 
   <!--
-    JS LOAD ORDER — each file depends on the ones above it:
-      js/data.js        → raw data arrays (ANIME_DB, COMING_SOON, UPDATES, INITIAL_COMMENTS)
-      js/helpers.js     → loadStorage / saveStorage / fmt / stars / useToast
-      js/icons.js       → SVG icon components (IconPlay, IconHeart, …)
-      js/components.js  → shared UI (Navbar, AnimeCard, HeroBanner, Footer, ToastContainer)
-      js/pages.js       → page components (HomePage, BrowsePage, DetailPage, WatchPage, …)
-      js/app.js         → root App + ReactDOM.createRoot entry point
+    JS LOAD ORDER:
+      data.js      → API fetchers, normalisers, window.__NimbusData promise
+      helpers.js   → localStorage / fmt / stars / useToast
+      icons.js     → SVG icon components
+      components.js→ Navbar, AnimeCard, HeroBanner, Footer, ToastContainer
+      pages.js     → HomePage, BrowsePage, DetailPage, WatchPage, StreamingPlayer, …
+      app.js       → root App + ReactDOM.createRoot entry point
   -->
   <script type="text/babel" src="js/data.js"></script>
   <script type="text/babel" src="js/helpers.js"></script>

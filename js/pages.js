@@ -1,62 +1,57 @@
 /* ═══════════════════════════════════════════════════════════
-   pages.js — Nimbus
-   One function per page/route:
-     HomePage · BrowsePage · SchedulePage
-     DetailPage · WatchPage · MyListPage · CommentSection
-   Depends on: components.js, icons.js, helpers.js, data.js
+   pages.js — Nimbus (DYNAMIC)
+   All pages receive `db` (ANIME_DB array) as a prop.
+   WatchPage handles multi-source streaming with fallback UI.
    ═══════════════════════════════════════════════════════════ */
 
-/* ── HOME PAGE ──────────────────────────────────────────────
-   Landing page. Sections: ticker → hero → trending →
-   new episodes → coming soon → highest rated → footer.      */
-function HomePage({ setPage, setCurrentAnime, setCurrentEp, favorites, bookmarks, onFavorite, onBookmark }) {
+/* ── HOME PAGE ─────────────────────────────────────────────── */
+function HomePage({ db, soon, setPage, setCurrentAnime, setCurrentEp, favorites, bookmarks, onFavorite, onBookmark }) {
   function handleDetail(anime) { setCurrentAnime(anime); setPage("detail"); }
   function handleWatch(anime, ep) { setCurrentAnime(anime); setCurrentEp(ep); setPage("watch"); }
 
-  var trending  = [...ANIME_DB].sort(function(a,b) { return b.score - a.score; });
-  var newEps    = ANIME_DB.filter(function(a) { return a.newEp; });
+  var trending  = [...db].sort((a,b) => b.score - a.score);
+  var newEps    = db.filter(a => a.newEp);
   var cardProps = { onDetail: handleDetail, onWatch: handleWatch, favorites, bookmarks, onFavorite, onBookmark };
 
   return (
     <div className="page">
       <UpdatesTicker />
-      <HeroBanner onWatch={handleWatch} onDetail={handleDetail} />
+      <HeroBanner db={db} onWatch={handleWatch} onDetail={handleDetail} />
 
       <div className="container">
-        {/* Trending */}
         <div className="section">
           <div className="section-header">
             <div className="section-title">Trending This Season</div>
-            <button className="view-all" onClick={function() { setPage("browse"); }}>View All →</button>
+            <button className="view-all" onClick={() => setPage("browse")}>View All →</button>
           </div>
           <div className="anime-grid">
-            {trending.slice(0,6).map(function(a) { return <AnimeCard key={a.id} anime={a} {...cardProps}/>; })}
+            {trending.slice(0, 6).map(a => <AnimeCard key={a.id} anime={a} {...cardProps}/>)}
           </div>
         </div>
 
-        {/* New Episodes */}
-        <div className="section">
-          <div className="section-header">
-            <div className="section-title">New Episodes</div>
+        {newEps.length > 0 && (
+          <div className="section">
+            <div className="section-header">
+              <div className="section-title">New Episodes</div>
+            </div>
+            <div className="h-scroll">
+              {newEps.slice(0,12).map(a => <AnimeCard key={a.id} anime={a} {...cardProps}/>)}
+            </div>
           </div>
-          <div className="h-scroll">
-            {newEps.map(function(a) { return <AnimeCard key={a.id} anime={a} {...cardProps}/>; })}
-          </div>
-        </div>
+        )}
 
-        {/* Coming Soon */}
-        <div className="section">
-          <div className="section-header">
-            <div className="section-title">Coming Soon</div>
-            <button className="view-all" onClick={function() { setPage("schedule"); }}>Full Schedule →</button>
-          </div>
-          <div className="h-scroll">
-            {COMING_SOON.map(function(anime) {
-              return (
+        {soon.length > 0 && (
+          <div className="section">
+            <div className="section-header">
+              <div className="section-title">Coming Soon</div>
+              <button className="view-all" onClick={() => setPage("schedule")}>Full Schedule →</button>
+            </div>
+            <div className="h-scroll">
+              {soon.map(anime => (
                 <div key={anime.id} className="soon-card">
                   <div className="soon-poster">
                     <img src={anime.poster} alt={anime.title}
-                      onError={function(e) { e.target.src="https://via.placeholder.com/240x140/0d0d26/7c3aed?text=Soon"; }}
+                      onError={e => { e.target.src="https://via.placeholder.com/240x140/0a0a0a/D4AF37?text=Soon"; }}
                     />
                     <div className="soon-poster-overlay"/>
                   </div>
@@ -64,24 +59,21 @@ function HomePage({ setPage, setCurrentAnime, setCurrentEp, favorites, bookmarks
                     <div className="soon-title">{anime.title}</div>
                     <div className="soon-date"><IconCalendar/>{anime.releaseDate}</div>
                     <div className="soon-genres">
-                      {anime.genres.map(function(g) { return <span key={g} className="genre-pill">{g}</span>; })}
+                      {(anime.genres||[]).slice(0,3).map(g => <span key={g} className="genre-pill">{g}</span>)}
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Highest Rated */}
         <div className="section">
           <div className="section-header">
             <div className="section-title">Highest Rated</div>
           </div>
           <div className="anime-grid">
-            {[...ANIME_DB].sort(function(a,b) { return b.score-a.score; }).slice(0,4).map(function(a) {
-              return <AnimeCard key={a.id} anime={a} {...cardProps}/>;
-            })}
+            {[...db].sort((a,b) => b.score-a.score).slice(0,4).map(a => <AnimeCard key={a.id} anime={a} {...cardProps}/>)}
           </div>
         </div>
       </div>
@@ -91,33 +83,29 @@ function HomePage({ setPage, setCurrentAnime, setCurrentEp, favorites, bookmarks
   );
 }
 
-/* ── BROWSE PAGE ────────────────────────────────────────────
-   Full catalog: search input + genre pills + sort select.
-   All filtering is done client-side against ANIME_DB.       */
-function BrowsePage({ searchQuery, setPage, setCurrentAnime, setCurrentEp, favorites, bookmarks, onFavorite, onBookmark }) {
-  var [filter, setFilter] = React.useState("All");
-  var [sort,   setSort  ] = React.useState("score");
-  var [local,  setLocal ] = React.useState(searchQuery);
+/* ── BROWSE PAGE ─────────────────────────────────────────────── */
+function BrowsePage({ db, searchQuery, setPage, setCurrentAnime, setCurrentEp, favorites, bookmarks, onFavorite, onBookmark }) {
+  const [filter, setFilter] = React.useState("All");
+  const [sort,   setSort  ] = React.useState("score");
+  const [local,  setLocal ] = React.useState(searchQuery);
 
-  // Sync the local input when the navbar search changes
-  React.useEffect(function() { setLocal(searchQuery); }, [searchQuery]);
+  React.useEffect(() => { setLocal(searchQuery); }, [searchQuery]);
 
-  var genres = ["All", ...new Set(ANIME_DB.flatMap(function(a) { return a.genres; }))];
+  const genres = ["All", ...new Set(db.flatMap(a => a.genres))].slice(0, 20);
 
-  // Filter → search → sort pipeline
-  var results = ANIME_DB
-    .filter(function(a) { return filter === "All" || a.genres.includes(filter); })
-    .filter(function(a) { return !local || a.title.toLowerCase().includes(local.toLowerCase()); })
-    .sort(function(a, b) {
-      return sort==="score" ? b.score-a.score
-           : sort==="year"  ? b.year-a.year
-           : a.title.localeCompare(b.title);
-    });
+  const results = db
+    .filter(a => filter === "All" || a.genres.includes(filter))
+    .filter(a => !local || a.title.toLowerCase().includes(local.toLowerCase()))
+    .sort((a,b) =>
+      sort === "score" ? b.score - a.score :
+      sort === "year"  ? b.year  - a.year  :
+      a.title.localeCompare(b.title)
+    );
 
-  var cardProps = {
-    onDetail: function(a) { setCurrentAnime(a); setPage("detail"); },
-    onWatch:  function(a, ep) { setCurrentAnime(a); setCurrentEp(ep); setPage("watch"); },
-    favorites, bookmarks, onFavorite, onBookmark
+  const cardProps = {
+    onDetail: a => { setCurrentAnime(a); setPage("detail"); },
+    onWatch:  (a, ep) => { setCurrentAnime(a); setCurrentEp(ep); setPage("watch"); },
+    favorites, bookmarks, onFavorite, onBookmark,
   };
 
   return (
@@ -125,41 +113,35 @@ function BrowsePage({ searchQuery, setPage, setCurrentAnime, setCurrentEp, favor
       <div className="container" style={{paddingTop:32}}>
         <div className="section-title" style={{marginBottom:24}}>Browse Anime</div>
 
-        {/* Search + sort row */}
         <div className="browse-search-bar">
-          <input className="browse-search-input" placeholder="Search by title..."
-            value={local} onChange={function(e) { setLocal(e.target.value); }}
+          <input className="browse-search-input" placeholder="Search by title…"
+            value={local} onChange={e => setLocal(e.target.value)}
           />
-          <select className="sort-select" value={sort} onChange={function(e) { setSort(e.target.value); }}>
+          <select className="sort-select" value={sort} onChange={e => setSort(e.target.value)}>
             <option value="score">Top Rated</option>
             <option value="year">Newest</option>
             <option value="title">A–Z</option>
           </select>
         </div>
 
-        {/* Genre filter pills */}
         <div className="browse-filters">
-          {genres.map(function(g) {
-            return (
-              <button key={g} className={"filter-pill" + (filter===g?" active":"")}
-                onClick={function() { setFilter(g); }}>
-                {g}
-              </button>
-            );
-          })}
+          {genres.map(g => (
+            <button key={g} className={"filter-pill" + (filter===g?" active":"")}
+              onClick={() => setFilter(g)}>{g}</button>
+          ))}
         </div>
 
         <p style={{fontSize:13,color:"var(--text-muted)",marginBottom:20}}>
-          {results.length} {results.length===1 ? "anime" : "animes"} found
+          {results.length} {results.length===1?"anime":"animes"} found
         </p>
 
         {results.length > 0
-          ? <div className="anime-grid">{results.map(function(a) { return <AnimeCard key={a.id} anime={a} {...cardProps}/>; })}</div>
+          ? <div className="anime-grid">{results.map(a => <AnimeCard key={a.id} anime={a} {...cardProps}/>)}</div>
           : (
             <div className="empty-state">
               <div className="empty-icon">🔍</div>
               <div className="empty-title">No results found</div>
-              <p style={{fontSize:14}}>Try a different search or filter</p>
+              <p style={{fontSize:14}}>Try a different search or genre filter</p>
             </div>
           )
         }
@@ -168,116 +150,140 @@ function BrowsePage({ searchQuery, setPage, setCurrentAnime, setCurrentEp, favor
   );
 }
 
-/* ── SCHEDULE PAGE ──────────────────────────────────────────
-   Grid of upcoming anime with poster, release date, synopsis. */
-function SchedulePage() {
+/* ── SCHEDULE PAGE ───────────────────────────────────────────── */
+function SchedulePage({ soon }) {
   return (
     <div className="page">
       <div className="container" style={{paddingTop:32}}>
         <div className="section-title" style={{marginBottom:8}}>Release Schedule</div>
         <p style={{fontSize:13,color:"var(--text-muted)",marginBottom:28}}>Upcoming releases and confirmed dates</p>
-        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))", gap:20}}>
-          {COMING_SOON.map(function(a) {
-            return (
-              <div key={a.id} className="info-panel fade-in">
-                <div style={{display:"flex",gap:14,marginBottom:14}}>
-                  <img src={a.poster} alt={a.title} style={{width:70,height:100,objectFit:"cover",borderRadius:8,flexShrink:0}}
-                    onError={function(e) { e.target.src="https://via.placeholder.com/70x100/0d0d26/7c3aed?text=S"; }}
-                  />
-                  <div>
-                    <div style={{fontSize:15,fontWeight:700,marginBottom:6,lineHeight:1.3}}>{a.title}</div>
-                    <div style={{fontSize:12,color:"var(--accent)",fontWeight:600,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>
-                      <IconCalendar/>{a.releaseDate}
-                    </div>
-                    <div className="soon-genres">
-                      {a.genres.map(function(g) { return <span key={g} className="genre-pill">{g}</span>; })}
-                    </div>
+        {soon.length === 0 && (
+          <div className="empty-state"><div className="empty-icon">📅</div><div className="empty-title">Loading schedule…</div></div>
+        )}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
+          {soon.map(a => (
+            <div key={a.id} className="info-panel fade-in">
+              <div style={{display:"flex",gap:14,marginBottom:14}}>
+                <img src={a.poster} alt={a.title}
+                  style={{width:70,height:100,objectFit:"cover",borderRadius:8,flexShrink:0}}
+                  onError={e => { e.target.src="https://via.placeholder.com/70x100/0a0a0a/D4AF37?text=S"; }}
+                />
+                <div>
+                  <div style={{fontSize:15,fontWeight:700,marginBottom:6,lineHeight:1.3}}>{a.title}</div>
+                  <div style={{fontSize:12,color:"var(--accent)",fontWeight:600,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>
+                    <IconCalendar/>{a.releaseDate}
+                  </div>
+                  <div className="soon-genres">
+                    {(a.genres||[]).slice(0,3).map(g => <span key={g} className="genre-pill">{g}</span>)}
                   </div>
                 </div>
-                <p style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.6}}>{a.synopsis}</p>
               </div>
-            );
-          })}
+              <p style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.6}}>{a.synopsis}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-/* ── DETAIL PAGE ────────────────────────────────────────────
-   Full single-anime view: hero banner, synopsis, episode list,
-   info sidebar with MAL link and user watch-status selector.  */
+/* ── DETAIL PAGE ─────────────────────────────────────────────── */
 function DetailPage({ anime, setPage, setCurrentEp, userLists, setUserLists, favorites, bookmarks, onFavorite, onBookmark, showToast }) {
-  var [dubSub, setDubSub] = React.useState("sub"); // audio track preference
+  const [dubSub, setDubSub] = React.useState("sub");
+  const [episodes, setEpisodes] = React.useState(anime?.episodes || []);
+  const [epsLoading, setEpsLoading] = React.useState(false);
 
   if (!anime) return null;
 
-  // Determine current user status for this anime
-  var currentStatus = Object.keys(userLists).find(function(k) { return userLists[k].includes(anime.id); }) || null;
+  // Lazily load richer episode list from Jikan
+  React.useEffect(() => {
+    setEpsLoading(true);
+    window.__NimbusData.then(({ fetchEpisodes, getStreamUrl }) => {
+      fetchEpisodes(anime.malId).then(jikanEps => {
+        if (jikanEps.length > 0) {
+          const merged = jikanEps.map(ep => ({
+            ...ep,
+            thumb: ep.thumb || anime.poster,
+            gogoSlug: anime.gogoSlug,
+            streamUrl: getStreamUrl(anime, ep.id),
+          }));
+          setEpisodes(merged);
+        } else {
+          // Use placeholder episodes with stream URLs
+          const withUrls = (anime.episodes || []).map(ep => ({
+            ...ep,
+            streamUrl: getStreamUrl(anime, ep.id),
+          }));
+          setEpisodes(withUrls);
+        }
+        setEpsLoading(false);
+      });
+    });
+  }, [anime.malId]);
 
-  // Add/move anime to a watch-status bucket; toggle off if already active
+  const currentStatus = Object.keys(userLists).find(k => userLists[k].includes(anime.id)) || null;
+
   function setStatus(status) {
-    setUserLists(function(prev) {
-      var next = Object.assign({}, prev);
-      // Remove from all buckets first
-      Object.keys(next).forEach(function(k) { next[k] = next[k].filter(function(id) { return id !== anime.id; }); });
-      if (status !== currentStatus) { next[status] = [...next[status], anime.id]; }
+    setUserLists(prev => {
+      const next = Object.assign({}, prev);
+      Object.keys(next).forEach(k => { next[k] = next[k].filter(id => id !== anime.id); });
+      if (status !== currentStatus) next[status] = [...next[status], anime.id];
       saveStorage("userLists", next);
       return next;
     });
     if (status !== currentStatus) showToast('Added to "' + status + '"', "success");
   }
 
-  var isFav  = favorites.includes(anime.id);
-  var isBook = bookmarks.includes(anime.id);
-  var trackAvailable = dubSub === "sub" ? anime.hasSub : anime.hasDub;
+  const isFav  = favorites.includes(anime.id);
+  const isBook = bookmarks.includes(anime.id);
+  const trackAvailable = dubSub === "sub" ? anime.hasSub : anime.hasDub;
+
+  function handleWatchEp(ep) {
+    setCurrentEp({ ...ep, streamUrl: ep.streamUrl });
+    setPage("watch");
+  }
 
   return (
     <div className="page fade-in">
-      {/* Back button */}
       <div style={{position:"absolute",top:72,left:24,zIndex:10}}>
-        <button className="btn btn-ghost" onClick={function() { setPage("home"); }}>
+        <button className="btn btn-ghost" onClick={() => setPage("home")}>
           <IconChevronL/> Back
         </button>
       </div>
 
-      {/* Hero banner — blurred background + poster overlay */}
       <div className="detail-hero">
-        <div className="detail-hero-bg" style={{backgroundImage:"url("+(anime.banner||anime.poster)+")"}}/>
+        <div className="detail-hero-bg" style={{backgroundImage:`url(${anime.banner||anime.poster})`}}/>
         <div className="detail-hero-content">
           <div className="detail-poster">
             <img src={anime.poster} alt={anime.title}
-              onError={function(e) { e.target.src="https://via.placeholder.com/160x230/0d0d26/7c3aed"; }}
+              onError={e => { e.target.src="https://via.placeholder.com/160x230/0a0a0a/D4AF37"; }}
             />
           </div>
           <div className="detail-info">
             <div className="detail-studios">{anime.studio}</div>
             <h1 className="detail-title">{anime.title}</h1>
             <div className="detail-meta-row">
-              <div className="detail-rating"><IconStar />{anime.score} / 10</div>
+              <div className="detail-rating"><IconStar/>{anime.score} / 10</div>
               <span style={{fontSize:13,color:"var(--text-secondary)"}}>{anime.year}</span>
               <span className={"card-status-badge badge-"+anime.status} style={{position:"static"}}>{anime.status}</span>
               <span style={{fontSize:13,color:"var(--text-secondary)"}}>{anime.totalEps} eps</span>
             </div>
             <div className="detail-tags">
-              {anime.genres.map(function(g) { return <span key={g} className="genre-pill">{g}</span>; })}
+              {anime.genres.map(g => <span key={g} className="genre-pill">{g}</span>)}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Body: two-column — episodes left, info panel right */}
       <div className="detail-body">
         <div className="detail-grid">
-          {/* Left: synopsis + episode list */}
           <div>
             <p className="detail-synopsis" style={{marginBottom:32}}>{anime.synopsis}</p>
 
-            {/* Dub / Sub tabs */}
             <div className="section-title" style={{marginBottom:14}}>Episodes</div>
             <div className="dub-sub-tabs">
-              {anime.hasSub && <button className={"tab-btn"+(dubSub==="sub"?" active":"")} onClick={function() { setDubSub("sub"); }}>SUB</button>}
-              {anime.hasDub && <button className={"tab-btn"+(dubSub==="dub"?" active":"")} onClick={function() { setDubSub("dub"); }}>DUB</button>}
+              {anime.hasSub && <button className={"tab-btn"+(dubSub==="sub"?" active":"")} onClick={() => setDubSub("sub")}>SUB</button>}
+              {anime.hasDub && <button className={"tab-btn"+(dubSub==="dub"?" active":"")} onClick={() => setDubSub("dub")}>DUB</button>}
             </div>
             {!trackAvailable && (
               <p style={{fontSize:13,color:"var(--accent)",marginBottom:12}}>
@@ -285,43 +291,47 @@ function DetailPage({ anime, setPage, setCurrentEp, userLists, setUserLists, fav
               </p>
             )}
 
-            {/* Episode list */}
+            {epsLoading && (
+              <div style={{textAlign:"center",padding:"32px 0",color:"var(--text-muted)"}}>
+                <div style={{width:28,height:28,border:"2px solid var(--bg-elevated)",borderTopColor:"var(--accent)",borderRadius:"50%",animation:"spin 0.9s linear infinite",margin:"0 auto 10px"}}/>
+                Loading episodes…
+              </div>
+            )}
+
             <div className="episode-list">
-              {anime.episodes.map(function(ep) {
-                return (
-                  <div key={ep.id} className="episode-item"
-                    onClick={function() { setCurrentEp(ep); setPage("watch"); }}>
-                    <div className="episode-num">E{ep.id}</div>
-                    <img className="episode-thumb" src={ep.thumb} alt={ep.title}
-                      onError={function(e) { e.target.src="https://via.placeholder.com/80x48/0d0d26/7c3aed?text=Ep"; }}
-                    />
-                    <div className="ep-info">
-                      <div className="ep-title">{ep.title}</div>
-                      <div className="ep-duration"><IconClock /> {ep.duration} · {dubSub.toUpperCase()}</div>
+              {episodes.map(ep => (
+                <div key={ep.id} className="episode-item" onClick={() => handleWatchEp(ep)}>
+                  <div className="episode-num">E{ep.id}</div>
+                  <img className="episode-thumb"
+                    src={ep.thumb || anime.poster} alt={ep.title}
+                    onError={e => { e.target.src="https://via.placeholder.com/80x48/0a0a0a/D4AF37?text=Ep"; }}
+                  />
+                  <div className="ep-info">
+                    <div className="ep-title">{ep.title}</div>
+                    <div className="ep-duration">
+                      <IconClock/> {ep.duration} · {dubSub.toUpperCase()}
+                      {ep.filler && <span style={{marginLeft:8,fontSize:9,color:"#f59e0b",background:"rgba(245,158,11,0.15)",padding:"1px 5px",borderRadius:3}}>FILLER</span>}
                     </div>
-                    <div className="ep-play-btn"><IconPlay/></div>
                   </div>
-                );
-              })}
+                  <div className="ep-play-btn"><IconPlay/></div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Right: info panel */}
           <div>
             <div className="info-panel">
-              {/* Favorite + Bookmark */}
               <div style={{display:"flex",gap:8,marginBottom:20}}>
                 <button className={"btn btn-secondary"+(isFav?" btn-icon active":"")} style={{flex:1}}
-                  onClick={function() { onFavorite(anime.id); }}>
+                  onClick={() => onFavorite(anime.id)}>
                   <IconHeart filled={isFav}/> {isFav?"Favorited":"Favorite"}
                 </button>
                 <button className={"btn btn-secondary"+(isBook?" btn-icon active":"")} style={{flex:1}}
-                  onClick={function() { onBookmark(anime.id); }}>
+                  onClick={() => onBookmark(anime.id)}>
                   <IconBookmark filled={isBook}/> {isBook?"Saved":"Bookmark"}
                 </button>
               </div>
 
-              {/* Stats */}
               <div className="info-stat"><div className="info-label">Studio</div><div className="info-value">{anime.studio}</div></div>
               <div className="info-stat"><div className="info-label">Episodes</div><div className="info-value">{anime.totalEps}</div></div>
               <div className="info-stat"><div className="info-label">Year</div><div className="info-value">{anime.year}</div></div>
@@ -337,12 +347,10 @@ function DetailPage({ anime, setPage, setCurrentEp, userLists, setUserLists, fav
                 </div>
               </div>
 
-              {/* MAL external link */}
-              <a className="mal-btn" href={"https://myanimelist.net/anime/"+anime.malId} target="_blank" rel="noopener noreferrer">
+              <a className="mal-btn" href={`https://myanimelist.net/anime/${anime.malId}`} target="_blank" rel="noopener noreferrer">
                 <IconExtLink/> View on MyAnimeList
               </a>
 
-              {/* Watch status selector */}
               <div className="status-selector">
                 <div className="status-label">My Status</div>
                 <div className="status-options">
@@ -351,16 +359,14 @@ function DetailPage({ anime, setPage, setCurrentEp, userLists, setUserLists, fav
                     {key:"completed",   label:"✓ Completed"},
                     {key:"planToWatch", label:"🕐 Plan to Watch"},
                     {key:"dropped",     label:"✗ Dropped"},
-                  ].map(function(s) {
-                    return (
-                      <button key={s.key}
-                        className={"status-btn"+(currentStatus===s.key?" active-status":"")}
-                        onClick={function() { setStatus(s.key); }}>
-                        {currentStatus===s.key && <span style={{color:"var(--accent)",marginRight:4}}><IconCheck/></span>}
-                        {s.label}
-                      </button>
-                    );
-                  })}
+                  ].map(s => (
+                    <button key={s.key}
+                      className={"status-btn"+(currentStatus===s.key?" active-status":"")}
+                      onClick={() => setStatus(s.key)}>
+                      {currentStatus===s.key && <span style={{color:"var(--accent)",marginRight:4}}><IconCheck/></span>}
+                      {s.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -373,190 +379,235 @@ function DetailPage({ anime, setPage, setCurrentEp, userLists, setUserLists, fav
   );
 }
 
-/* ── COMMENT SECTION ────────────────────────────────────────
-   Per-episode comment thread. Key: "{animeId}-{epId}".
-   Supports: post new, like/unlike. State is local (in-memory). */
-function CommentSection({ animeId, epId }) {
-  var key = animeId + "-" + epId;
-  var [comments, setComments] = React.useState(INITIAL_COMMENTS[key] || []);
-  var [text, setText] = React.useState("");
+/* ── STREAMING PLAYER with multi-source fallback ─────────────── */
+function StreamingPlayer({ anime, episode }) {
+  const SOURCES = React.useMemo(() => {
+    if (!anime || !episode) return [];
+    const slug = anime.gogoSlug;
+    const ep   = episode.id;
+    const title= encodeURIComponent(anime.title + " episode " + ep + " english sub");
+    const list = [];
+    if (slug) {
+      list.push({ label: "Source 1 (Primary)",   url: `https://gogoanime3.co/embed/${slug}-episode-${ep}` });
+      list.push({ label: "Source 2 (Backup)",    url: `https://gogoanime3.to/embed/${slug}-episode-${ep}` });
+    }
+    if (episode.streamUrl && !list.find(s => s.url === episode.streamUrl)) {
+      list.push({ label: "Source 3 (AniList)",   url: episode.streamUrl });
+    }
+    if (anime.trailer && ep === 1) {
+      list.push({ label: "Official Trailer",     url: anime.trailer });
+    }
+    list.push({ label: "Search YouTube", url: `https://www.youtube.com/results?search_query=${title}`, external: true });
+    list.push({ label: "Search Zoro.to", url: `https://zoro.to/search?keyword=${encodeURIComponent(anime.title)}`, external: true });
+    return list;
+  }, [anime, episode]);
 
-  // Prepend new comment to thread
-  function postComment() {
-    if (!text.trim()) return;
-    var newC = { id: Date.now(), user:"You", avatar:"Y", text:text, time:"just now", likes:0, liked:false };
-    setComments(function(c) { return [newC, ...c]; });
-    setText("");
+  const [sourceIdx, setSourceIdx] = React.useState(0);
+  const [failed,    setFailed   ] = React.useState(false);
+  const [manualSrc, setManualSrc] = React.useState(null);
+  const iframeRef = React.useRef(null);
+
+  // Reset when episode changes
+  React.useEffect(() => { setSourceIdx(0); setFailed(false); setManualSrc(null); }, [episode?.id]);
+
+  const current = manualSrc ? { url: manualSrc, label: "Custom URL" } : SOURCES[sourceIdx];
+
+  function tryNext() {
+    const next = sourceIdx + 1;
+    if (next < SOURCES.length) { setSourceIdx(next); setFailed(false); }
+    else setFailed(true);
   }
 
-  // Toggle thumbs-up; adjusts likes count to match
-  function toggleLike(id) {
-    setComments(function(c) {
-      return c.map(function(x) {
-        return x.id===id ? {...x, liked:!x.liked, likes: x.liked ? x.likes-1 : x.likes+1} : x;
-      });
+  function handleError() {
+    // iframe onError is unreliable; this fires on network-level errors
+    tryNext();
+  }
+
+  const isExternal = current?.external;
+
+  return (
+    <div style={{position:"relative",width:"100%",aspectRatio:"16/9",background:"#000"}}>
+      {!failed && !isExternal && current ? (
+        <iframe
+          ref={iframeRef}
+          key={current.url}               /* force remount on source change */
+          src={current.url}
+          title={`${anime?.title} EP${episode?.id}`}
+          style={{width:"100%",height:"100%",border:"none"}}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+          onError={handleError}
+        />
+      ) : (
+        /* Fallback UI — shows when all embeds fail or source is external */
+        <div style={{
+          width:"100%",height:"100%",display:"flex",flexDirection:"column",
+          alignItems:"center",justifyContent:"center",background:"#0a0a0a",
+          padding:24,gap:16,textAlign:"center"
+        }}>
+          <div style={{fontSize:40}}>🎬</div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:"var(--accent)"}}>
+            {failed ? "Embed unavailable" : "External source"}
+          </div>
+          <p style={{fontSize:13,color:"var(--text-muted)",maxWidth:380}}>
+            Direct embedding is blocked for this title. Open in a new tab or try another source below.
+          </p>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
+            {SOURCES.map((s,i) => (
+              <button key={i}
+                style={{
+                  padding:"8px 14px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",
+                  background: i===sourceIdx&&!failed ? "var(--accent)" : "var(--bg-elevated)",
+                  color: i===sourceIdx&&!failed ? "#fff" : "var(--text-secondary)",
+                  border:"1px solid var(--border)",fontFamily:"inherit"
+                }}
+                onClick={() => {
+                  if (s.external) { window.open(s.url,"_blank"); return; }
+                  setSourceIdx(i); setFailed(false); setManualSrc(null);
+                }}>
+                {s.external ? "↗ " : ""}{s.label}
+              </button>
+            ))}
+          </div>
+          {/* Manual URL input */}
+          <div style={{marginTop:8,width:"100%",maxWidth:420}}>
+            <p style={{fontSize:11,color:"var(--text-muted)",marginBottom:6}}>Paste a direct embed URL:</p>
+            <div style={{display:"flex",gap:6}}>
+              <input id="custom-url-input" placeholder="https://…"
+                style={{flex:1,background:"var(--bg-elevated)",border:"1px solid var(--border)",borderRadius:6,
+                        color:"var(--text-primary)",padding:"8px 10px",fontSize:12,outline:"none"}}
+              />
+              <button className="btn btn-primary btn-sm"
+                onClick={() => {
+                  const v = document.getElementById("custom-url-input").value.trim();
+                  if (v) { setManualSrc(v); setFailed(false); }
+                }}>Load</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Source switcher overlay — bottom-left, only when embed is active */}
+      {!failed && !isExternal && SOURCES.length > 1 && (
+        <div style={{
+          position:"absolute",bottom:8,left:8,display:"flex",gap:4,
+          background:"rgba(0,0,0,0.7)",borderRadius:6,padding:"4px 6px",zIndex:10
+        }}>
+          {SOURCES.filter(s => !s.external).map((s,i) => (
+            <button key={i}
+              title={s.label}
+              style={{
+                width:24,height:24,borderRadius:4,fontSize:10,fontWeight:700,cursor:"pointer",
+                background: i===sourceIdx ? "var(--accent)" : "rgba(255,255,255,0.1)",
+                color:"#fff",border:"none",fontFamily:"inherit"
+              }}
+              onClick={() => { setSourceIdx(i); setFailed(false); setManualSrc(null); }}>
+              {i+1}
+            </button>
+          ))}
+          <button
+            title="Source unavailable? Try next"
+            style={{padding:"0 6px",height:24,borderRadius:4,fontSize:10,background:"rgba(255,255,255,0.1)",
+                    color:"#fff",border:"none",cursor:"pointer",fontFamily:"inherit"}}
+            onClick={tryNext}>
+            Skip ›
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── WATCH PAGE ──────────────────────────────────────────────── */
+function WatchPage({ anime, episode, setCurrentEp, setPage }) {
+  const [dubSub, setDubSub] = React.useState("sub");
+  const episodes = anime?.episodes || [];
+
+  if (!anime || !episode) return null;
+
+  const epIndex = episodes.findIndex(e => e.id === episode.id);
+  const prevEp  = epIndex > 0 ? episodes[epIndex-1] : null;
+  const nextEp  = epIndex < episodes.length-1 ? episodes[epIndex+1] : null;
+
+  function goEp(ep) {
+    // Ensure episode has a streamUrl
+    window.__NimbusData.then(({ getStreamUrl }) => {
+      setCurrentEp({ ...ep, streamUrl: getStreamUrl(anime, ep.id) });
     });
   }
 
   return (
-    <div className="comments-section">
-      <div className="comments-title">
-        Comments <span className="comments-count">{comments.length}</span>
-      </div>
-
-      {/* Input area */}
-      <div className="comment-input-area">
-        <div className="comment-avatar">Y</div>
-        <div className="comment-box-wrapper">
-          <textarea className="comment-textarea" placeholder="Share your thoughts… (no spoilers!)"
-            value={text} onChange={function(e) { setText(e.target.value); }}
-            onKeyDown={function(e) { if(e.ctrlKey && e.key==="Enter") postComment(); }}
-          />
-          <div className="comment-actions">
-            <button className="btn btn-ghost btn-sm" onClick={function() { setText(""); }}>Cancel</button>
-            <button className="btn btn-primary btn-sm" onClick={postComment}>Post</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Comment thread */}
-      <div className="comment-thread">
-        {comments.map(function(c) {
-          return (
-            <div key={c.id} className="comment-item">
-              <div className="comment-avatar" style={{background:"linear-gradient(135deg,#7c3aed,#e8304a)"}}>{c.avatar}</div>
-              <div className="comment-body">
-                <div className="comment-header">
-                  <span className="comment-user">{c.user}</span>
-                  <span className="comment-time">{c.time}</span>
-                </div>
-                <div className="comment-text">{c.text}</div>
-                <div className="comment-likes">
-                  <button className={"like-btn"+(c.liked?" liked":"")} onClick={function() { toggleLike(c.id); }}>
-                    <IconThumb/> {fmt(c.likes)}
-                  </button>
-                  <button className="like-btn">Reply</button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        {comments.length === 0 && (
-          <p style={{fontSize:13,color:"var(--text-muted)",textAlign:"center",padding:"20px 0"}}>
-            No comments yet. Be the first!
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ── WATCH PAGE ─────────────────────────────────────────────
-   Video player page. Layout: player + controls + comments (left)
-   and episode sidebar (right). Uses YouTube embed.            */
-function WatchPage({ anime, episode, setCurrentEp, setPage }) {
-  var [dubSub, setDubSub] = React.useState("sub");
-
-  if (!anime || !episode) return null;
-
-  var epIndex = anime.episodes.findIndex(function(e) { return e.id === episode.id; });
-  var prevEp  = epIndex > 0 ? anime.episodes[epIndex-1] : null;
-  var nextEp  = epIndex < anime.episodes.length-1 ? anime.episodes[epIndex+1] : null;
-
-  // YouTube embed — autoplay, minimal branding
-  var embedUrl = "https://www.youtube.com/embed/" + episode.videoId + "?autoplay=1&rel=0&modestbranding=1";
-
-  return (
     <div className="page">
       <div className="watch-layout">
-        {/* Left: player + info + comments */}
         <div className="player-column">
           <div className="player-wrapper">
-            <div className="video-container">
-              <iframe src={embedUrl} title={episode.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
+            <StreamingPlayer anime={anime} episode={episode} />
           </div>
 
-          {/* Player info bar */}
           <div className="player-info">
             <div className="player-title">{anime.title}</div>
             <div className="player-ep">Episode {episode.id}: {episode.title}</div>
             <div className="player-controls">
-              {/* Prev / Next navigation */}
-              <button className="ep-nav-btn" disabled={!prevEp} onClick={function() { setCurrentEp(prevEp); }}>
+              <button className="ep-nav-btn" disabled={!prevEp} onClick={() => goEp(prevEp)}>
                 <IconChevronL/> Prev
               </button>
-              <button className="ep-nav-btn" disabled={!nextEp} onClick={function() { setCurrentEp(nextEp); }}>
+              <button className="ep-nav-btn" disabled={!nextEp} onClick={() => goEp(nextEp)}>
                 Next <IconChevronR/>
               </button>
-              {/* Dub / Sub switcher */}
               <div className="dub-sub-tabs" style={{marginBottom:0}}>
-                {anime.hasSub && <button className={"tab-btn btn-sm"+(dubSub==="sub"?" active":"")} onClick={function() { setDubSub("sub"); }}>SUB</button>}
-                {anime.hasDub && <button className={"tab-btn btn-sm"+(dubSub==="dub"?" active":"")} onClick={function() { setDubSub("dub"); }}>DUB</button>}
+                {anime.hasSub && <button className={"tab-btn btn-sm"+(dubSub==="sub"?" active":"")} onClick={() => setDubSub("sub")}>SUB</button>}
+                {anime.hasDub && <button className={"tab-btn btn-sm"+(dubSub==="dub"?" active":"")} onClick={() => setDubSub("dub")}>DUB</button>}
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={function() { setPage("detail"); }}>Anime Info</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setPage("detail")}>Anime Info</button>
             </div>
           </div>
 
-          {/* Comments for this specific episode */}
-          <CommentSection animeId={anime.id} epId={episode.id} />
+          <CommentSection animeId={anime.id} epId={episode.id}/>
         </div>
 
-        {/* Right: episode sidebar */}
         <div className="watch-sidebar">
           <div className="sidebar-header">Episodes — {dubSub.toUpperCase()}</div>
-          {anime.episodes.map(function(ep) {
-            return (
-              <div key={ep.id} className={"sidebar-ep"+(ep.id===episode.id?" current":"")}
-                onClick={function() { setCurrentEp(ep); }}>
-                <img className="sidebar-ep-thumb" src={ep.thumb} alt={ep.title}
-                  onError={function(e) { e.target.src="https://via.placeholder.com/80x48/0d0d26/7c3aed?text=Ep"; }}
-                />
-                <div className="sidebar-ep-info">
-                  <div className="sidebar-ep-num">EP {ep.id}</div>
-                  <div className="sidebar-ep-title">{ep.title}</div>
-                  <div style={{fontSize:10,color:"var(--text-muted)",marginTop:3}}><IconClock/> {ep.duration}</div>
-                </div>
+          {episodes.map(ep => (
+            <div key={ep.id} className={"sidebar-ep"+(ep.id===episode.id?" current":"")}
+              onClick={() => goEp(ep)}>
+              <img className="sidebar-ep-thumb"
+                src={ep.thumb || anime.poster} alt={ep.title}
+                onError={e => { e.target.src="https://via.placeholder.com/80x48/0a0a0a/D4AF37?text=Ep"; }}
+              />
+              <div className="sidebar-ep-info">
+                <div className="sidebar-ep-num">EP {ep.id}</div>
+                <div className="sidebar-ep-title">{ep.title}</div>
+                <div style={{fontSize:10,color:"var(--text-muted)",marginTop:3}}><IconClock/> {ep.duration}</div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-/* ── MY LIST PAGE ───────────────────────────────────────────
-   User's personal tracking page.
-   Tabs: Watching · Completed · Plan to Watch · Dropped
-         Favorites · Bookmarks
-   Supports removing anime from any list.                    */
-function MyListPage({ userLists, setUserLists, favorites, bookmarks, onFavorite, onBookmark, setCurrentAnime, setPage }) {
-  var [activeTab, setActiveTab] = React.useState("watching");
+/* ── MY LIST PAGE ─────────────────────────────────────────────── */
+function MyListPage({ db, userLists, setUserLists, favorites, bookmarks, onFavorite, onBookmark, setCurrentAnime, setPage }) {
+  const [activeTab, setActiveTab] = React.useState("watching");
 
-  // Resolve which IDs belong to the current tab
-  var tabIds = activeTab === "favorites" ? favorites
-             : activeTab === "bookmarks" ? bookmarks
-             : userLists[activeTab] || [];
+  const tabIds = activeTab==="favorites" ? favorites
+               : activeTab==="bookmarks" ? bookmarks
+               : userLists[activeTab] || [];
 
-  var animes = ANIME_DB.filter(function(a) { return tabIds.includes(a.id); });
+  const animes = db.filter(a => tabIds.includes(a.id));
 
-  // Remove from the active list; delegates favorites/bookmarks to parent toggles
   function removeFromList(animeId) {
-    if (activeTab === "favorites") { onFavorite(animeId); return; }
-    if (activeTab === "bookmarks") { onBookmark(animeId); return; }
-    setUserLists(function(prev) {
-      var next = Object.assign({}, prev, { [activeTab]: prev[activeTab].filter(function(id) { return id !== animeId; }) });
+    if (activeTab==="favorites") { onFavorite(animeId); return; }
+    if (activeTab==="bookmarks") { onBookmark(animeId); return; }
+    setUserLists(prev => {
+      const next = Object.assign({}, prev, { [activeTab]: prev[activeTab].filter(id => id!==animeId) });
       saveStorage("userLists", next);
       return next;
     });
   }
 
-  // Tab definitions; count displayed as a pill badge
-  var tabs = [
+  const tabs = [
     {key:"watching",    label:"Watching"},
     {key:"completed",   label:"Completed"},
     {key:"planToWatch", label:"Plan to Watch"},
@@ -575,52 +626,101 @@ function MyListPage({ userLists, setUserLists, favorites, bookmarks, onFavorite,
     <div className="page">
       <div className="my-list-page">
         <div className="section-title" style={{marginBottom:8}}>My Anime List</div>
-        <p style={{fontSize:13,color:"var(--text-muted)",marginBottom:24}}>
-          Track your progress and sync with MyAnimeList
-        </p>
+        <p style={{fontSize:13,color:"var(--text-muted)",marginBottom:24}}>Track your progress and sync with MyAnimeList</p>
 
-        {/* Tab bar */}
         <div className="list-tabs">
-          {tabs.map(function(t) {
-            return (
-              <button key={t.key} className={"list-tab"+(activeTab===t.key?" active":"")}
-                onClick={function() { setActiveTab(t.key); }}>
-                {t.label}<span className="list-count">{getCount(t)}</span>
-              </button>
-            );
-          })}
+          {tabs.map(t => (
+            <button key={t.key} className={"list-tab"+(activeTab===t.key?" active":"")}
+              onClick={() => setActiveTab(t.key)}>
+              {t.label}<span className="list-count">{getCount(t)}</span>
+            </button>
+          ))}
         </div>
 
-        {/* Anime rows or empty state */}
-        {animes.length === 0 ? (
+        {animes.length===0 ? (
           <div className="empty-state">
             <div className="empty-icon">📋</div>
             <div className="empty-title">Nothing here yet</div>
             <p style={{fontSize:14,color:"var(--text-muted)"}}>Browse anime and add them to your list</p>
-            <button className="btn btn-primary" style={{marginTop:16}} onClick={function() { setPage("browse"); }}>
-              Browse Anime
-            </button>
+            <button className="btn btn-primary" style={{marginTop:16}} onClick={() => setPage("browse")}>Browse Anime</button>
           </div>
         ) : (
-          animes.map(function(a) {
-            return (
-              <div key={a.id} className="list-item"
-                onClick={function() { setCurrentAnime(a); setPage("detail"); }}>
-                <img className="list-item-poster" src={a.poster} alt={a.title}
-                  onError={function(e) { e.target.src="https://via.placeholder.com/48x68/0d0d26/7c3aed?text=A"; }}
-                />
-                <div className="list-item-info">
-                  <div className="list-item-title">{a.title}</div>
-                  <div className="list-item-meta">{a.year} · {a.genres[0]} · Score: {a.score}</div>
-                </div>
-                <div className="list-item-actions" onClick={function(e) { e.stopPropagation(); }}>
-                  <button className="remove-btn" onClick={function() { removeFromList(a.id); }}>
-                    <IconX/> Remove
-                  </button>
-                </div>
+          animes.map(a => (
+            <div key={a.id} className="list-item" onClick={() => { setCurrentAnime(a); setPage("detail"); }}>
+              <img className="list-item-poster" src={a.poster} alt={a.title}
+                onError={e => { e.target.src="https://via.placeholder.com/48x68/0a0a0a/D4AF37?text=A"; }}
+              />
+              <div className="list-item-info">
+                <div className="list-item-title">{a.title}</div>
+                <div className="list-item-meta">{a.year} · {a.genres[0]} · Score: {a.score}</div>
               </div>
-            );
-          })
+              <div className="list-item-actions" onClick={e => e.stopPropagation()}>
+                <button className="remove-btn" onClick={() => removeFromList(a.id)}><IconX/> Remove</button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── COMMENT SECTION ─────────────────────────────────────────── */
+function CommentSection({ animeId, epId }) {
+  const key = animeId + "-" + epId;
+  const [comments, setComments] = React.useState((typeof INITIAL_COMMENTS !== "undefined" && INITIAL_COMMENTS[key]) || []);
+  const [text, setText] = React.useState("");
+
+  function postComment() {
+    if (!text.trim()) return;
+    const newC = { id: Date.now(), user:"You", avatar:"Y", text, time:"just now", likes:0, liked:false };
+    setComments(c => [newC, ...c]);
+    setText("");
+  }
+
+  function toggleLike(id) {
+    setComments(c => c.map(x => x.id===id ? {...x, liked:!x.liked, likes: x.liked?x.likes-1:x.likes+1} : x));
+  }
+
+  return (
+    <div className="comments-section">
+      <div className="comments-title">
+        Comments <span className="comments-count">{comments.length}</span>
+      </div>
+      <div className="comment-input-area">
+        <div className="comment-avatar">Y</div>
+        <div className="comment-box-wrapper">
+          <textarea className="comment-textarea" placeholder="Share your thoughts… (no spoilers!)"
+            value={text} onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if(e.ctrlKey && e.key==="Enter") postComment(); }}
+          />
+          <div className="comment-actions">
+            <button className="btn btn-ghost btn-sm" onClick={() => setText("")}>Cancel</button>
+            <button className="btn btn-primary btn-sm" onClick={postComment}>Post</button>
+          </div>
+        </div>
+      </div>
+      <div className="comment-thread">
+        {comments.map(c => (
+          <div key={c.id} className="comment-item">
+            <div className="comment-avatar" style={{background:"linear-gradient(135deg,#7c3aed,#D4AF37)"}}>{c.avatar}</div>
+            <div className="comment-body">
+              <div className="comment-header">
+                <span className="comment-user">{c.user}</span>
+                <span className="comment-time">{c.time}</span>
+              </div>
+              <div className="comment-text">{c.text}</div>
+              <div className="comment-likes">
+                <button className={"like-btn"+(c.liked?" liked":"")} onClick={() => toggleLike(c.id)}>
+                  <IconThumb/> {fmt(c.likes)}
+                </button>
+                <button className="like-btn">Reply</button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {comments.length===0 && (
+          <p style={{fontSize:13,color:"var(--text-muted)",textAlign:"center",padding:"20px 0"}}>No comments yet. Be the first!</p>
         )}
       </div>
     </div>
