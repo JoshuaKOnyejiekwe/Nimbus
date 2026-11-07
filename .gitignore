@@ -1,4 +1,4 @@
 firebase-config-nimbus.js
-agents/
-claude/
+.agents/
+.claude/
 .env
